@@ -1,91 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Text to Image Generator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Image Generator</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f172a;
-      color: white;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #667eea;
       text-align: center;
-    }
-    h1 { margin-bottom: 10px; }
-    input {
-      width: 80%;
-      max-width: 500px;
-      padding: 10px;
-      font-size: 1rem;
-      border-radius: 10px;
-      border: none;
-      outline: none;
       margin-bottom: 10px;
+      font-size: 2rem;
     }
-    button {
-      background: #2563eb;
-      border: none;
-      padding: 10px 20px;
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
       border-radius: 10px;
-      color: white;
       font-size: 1rem;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    button:hover { background: #1d4ed8; }
-    img {
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
       margin-top: 20px;
-      max-width: 90%;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: 500;
+      display: none;
     }
-    .loading { margin-top: 20px; font-size: 1.1rem; color: #93c5fd; }
+
+    .status.loading {
+      background: #fff3cd;
+      color: #856404;
+      display: block;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .image-container {
+      margin-top: 30px;
+      text-align: center;
+      display: none;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .download-btn {
+      margin-top: 15px;
+      background: #28a745;
+      padding: 10px 20px;
+      width: auto;
+      display: inline-block;
+    }
+
+    .download-btn:hover {
+      background: #218838;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
-  <h1>🧠 Text → Image Generator</h1>
-  <input id="prompt" type="text" placeholder="Describe anything..." />
-  <button onclick="generateImage()">Generate</button>
-  <div id="status" class="loading"></div>
-  <img id="result" src="" alt="" />
+  <div class="container">
+    <h1>🎨 AI Image Generator</h1>
+    <p class="subtitle">Transform your words into stunning images</p>
+
+    <div class="info-box">
+      📝 <strong>Setup:</strong> Get your free API token from 
+      <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face</a>
+    </div>
+
+    <div class="input-group">
+      <label for="apiKey">🔑 API Token</label>
+      <input 
+        type="password" 
+        id="apiKey" 
+        placeholder="Enter your Hugging Face token (hf_...)"
+      >
+    </div>
+
+    <div class="input-group">
+      <label for="prompt">💭 Describe Your Image</label>
+      <textarea 
+        id="prompt" 
+        placeholder="A serene landscape with mountains at sunset, vibrant colors, photorealistic..."
+      ></textarea>
+    </div>
+
+    <button id="generateBtn" onclick="generateImage()">
+      ✨ Generate Image
+    </button>
+
+    <div id="status" class="status"></div>
+
+    <div id="imageContainer" class="image-container">
+      <img id="generatedImage" alt="Generated image">
+      <br>
+      <button class="download-btn" onclick="downloadImage()">
+        ⬇️ Download Image
+      </button>
+    </div>
+  </div>
 
   <script>
-    const API_URL = "https://api-inference.huggingface.co/models/CompVis/stable-diffusion-v1-4";
-    const HF_TOKEN = "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"; // Optional: add "hf_yourTokenHere" if you have one
+    const API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell";
+    let currentImageUrl = null;
 
     async function generateImage() {
-      const prompt = document.getElementById("prompt").value.trim();
-      if (!prompt) return alert("Please enter a prompt.");
+      const apiKey = document.getElementById('apiKey').value.trim();
+      const prompt = document.getElementById('prompt').value.trim();
+      const status = document.getElementById('status');
+      const imageContainer = document.getElementById('imageContainer');
+      const generateBtn = document.getElementById('generateBtn');
+      const generatedImage = document.getElementById('generatedImage');
 
-      const status = document.getElementById("status");
-      const result = document.getElementById("result");
-      status.textContent = "⏳ Generating... please wait 30–40s";
-      result.src = "";
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Authorization": HF_TOKEN ? `Bearer ${HF_TOKEN}` : "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ inputs: prompt }),
-      });
-
-      if (!response.ok) {
-        status.textContent = "❌ Failed: " + response.statusText;
+      // Validation
+      if (!apiKey) {
+        showStatus('Please enter your Hugging Face API token', 'error');
         return;
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      result.src = url;
-      status.textContent = "✅ Done!";
+      if (!prompt) {
+        showStatus('Please describe the image you want to generate', 'error');
+        return;
+      }
+
+      // Start generation
+      generateBtn.disabled = true;
+      imageContainer.style.display = 'none';
+      showStatus('🎨 Creating your image... This may take 20-40 seconds', 'loading');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            inputs: prompt,
+            parameters: {
+              num_inference_steps: 4
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          
+          if (response.status === 503) {
+            showStatus('⏳ Model is loading... Please wait 20 seconds and try again', 'loading');
+            setTimeout(() => {
+              generateBtn.disabled = false;
+            }, 20000);
+            return;
+          }
+
+          if (response.status === 401) {
+            showStatus('❌ Invalid API token. Please check your token and try again', 'error');
+          } else {
+            showStatus(`❌ Error: ${errorData || response.statusText}`, 'error');
+          }
+          
+          generateBtn.disabled = false;
+          return;
+        }
+
+        const blob = await response.blob();
+        
+        if (currentImageUrl) {
+          URL.revokeObjectURL(currentImageUrl);
+        }
+        
+        currentImageUrl = URL.createObjectURL(blob);
+        generatedImage.src = currentImageUrl;
+        imageContainer.style.display = 'block';
+        
+        showStatus('✅ Image generated successfully!', 'success');
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showStatus(`❌ Network error: ${error.message}`, 'error');
+      } finally {
+        generateBtn.disabled = false;
+      }
     }
+
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = `status ${type}`;
+    }
+
+    function downloadImage() {
+      if (!currentImageUrl) return;
+      
+      const a = document.createElement('a');
+      a.href = currentImageUrl;
+      a.download = `ai-generated-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('prompt').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        generateImage();
+      }
+    });
   </script>
 </body>
 </html>
