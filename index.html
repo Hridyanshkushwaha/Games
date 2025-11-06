@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Image Generator</title>
+  <title>AI Image Generator - No Token Required</title>
   <style>
     * {
       margin: 0;
@@ -55,7 +55,7 @@
       font-weight: 600;
     }
 
-    input, textarea {
+    textarea {
       width: 100%;
       padding: 12px;
       border: 2px solid #e0e0e0;
@@ -63,16 +63,13 @@
       font-size: 1rem;
       transition: border-color 0.3s;
       font-family: inherit;
-    }
-
-    input:focus, textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    textarea {
       resize: vertical;
       min-height: 100px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
     }
 
     button {
@@ -150,39 +147,39 @@
     }
 
     .info-box {
-      background: #e7f3ff;
-      border-left: 4px solid #667eea;
+      background: #d4edda;
+      border-left: 4px solid #28a745;
       padding: 15px;
       margin-bottom: 20px;
       border-radius: 5px;
       font-size: 0.9rem;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      color: #856404;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🎨 AI Image Generator</h1>
-    <p class="subtitle">Transform your words into stunning images</p>
+    <p class="subtitle">No API token required - 100% Free!</p>
 
     <div class="info-box">
-      📝 <strong>Setup:</strong> Get your free API token from 
-      <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face</a>
-    </div>
-
-    <div class="input-group">
-      <label for="apiKey">🔑 API Token</label>
-      <input 
-        type="password" 
-        id="apiKey" 
-        placeholder="Enter your Hugging Face token (hf_...)"
-      >
+      ✨ <strong>No signup needed!</strong> Uses Pollinations.ai free API
     </div>
 
     <div class="input-group">
       <label for="prompt">💭 Describe Your Image</label>
       <textarea 
         id="prompt" 
-        placeholder="A serene landscape with mountains at sunset, vibrant colors, photorealistic..."
+        placeholder="A serene landscape with mountains at sunset, vibrant colors, photorealistic, detailed, 4k..."
       ></textarea>
     </div>
 
@@ -199,14 +196,16 @@
         ⬇️ Download Image
       </button>
     </div>
+
+    <div class="warning-box">
+      ℹ️ <strong>Note:</strong> This uses a free public API. Images generate instantly but quality may vary. For better results, try detailed prompts with style keywords like "photorealistic", "digital art", or "oil painting".
+    </div>
   </div>
 
   <script>
-    const API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell";
     let currentImageUrl = null;
 
     async function generateImage() {
-      const apiKey = document.getElementById('apiKey').value.trim();
       const prompt = document.getElementById('prompt').value.trim();
       const status = document.getElementById('status');
       const imageContainer = document.getElementById('imageContainer');
@@ -214,11 +213,6 @@
       const generatedImage = document.getElementById('generatedImage');
 
       // Validation
-      if (!apiKey) {
-        showStatus('Please enter your Hugging Face API token', 'error');
-        return;
-      }
-
       if (!prompt) {
         showStatus('Please describe the image you want to generate', 'error');
         return;
@@ -227,60 +221,38 @@
       // Start generation
       generateBtn.disabled = true;
       imageContainer.style.display = 'none';
-      showStatus('🎨 Creating your image... This may take 20-40 seconds', 'loading');
+      showStatus('🎨 Creating your image... Please wait', 'loading');
 
       try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            inputs: prompt,
-            parameters: {
-              num_inference_steps: 4
-            }
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          
-          if (response.status === 503) {
-            showStatus('⏳ Model is loading... Please wait 20 seconds and try again', 'loading');
-            setTimeout(() => {
-              generateBtn.disabled = false;
-            }, 20000);
-            return;
-          }
-
-          if (response.status === 401) {
-            showStatus('❌ Invalid API token. Please check your token and try again', 'error');
-          } else {
-            showStatus(`❌ Error: ${errorData || response.statusText}`, 'error');
+        // Using Pollinations.ai - free, no token required
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+        
+        // Preload image to check if it loads successfully
+        const img = new Image();
+        
+        img.onload = () => {
+          if (currentImageUrl && currentImageUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(currentImageUrl);
           }
           
+          currentImageUrl = imageUrl;
+          generatedImage.src = imageUrl;
+          imageContainer.style.display = 'block';
+          showStatus('✅ Image generated successfully!', 'success');
           generateBtn.disabled = false;
-          return;
-        }
-
-        const blob = await response.blob();
+        };
         
-        if (currentImageUrl) {
-          URL.revokeObjectURL(currentImageUrl);
-        }
+        img.onerror = () => {
+          showStatus('❌ Failed to generate image. Please try a different prompt.', 'error');
+          generateBtn.disabled = false;
+        };
         
-        currentImageUrl = URL.createObjectURL(blob);
-        generatedImage.src = currentImageUrl;
-        imageContainer.style.display = 'block';
-        
-        showStatus('✅ Image generated successfully!', 'success');
+        img.src = imageUrl;
         
       } catch (error) {
         console.error('Error:', error);
-        showStatus(`❌ Network error: ${error.message}`, 'error');
-      } finally {
+        showStatus(`❌ Error: ${error.message}`, 'error');
         generateBtn.disabled = false;
       }
     }
@@ -291,18 +263,31 @@
       status.className = `status ${type}`;
     }
 
-    function downloadImage() {
+    async function downloadImage() {
       if (!currentImageUrl) return;
       
-      const a = document.createElement('a');
-      a.href = currentImageUrl;
-      a.download = `ai-generated-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      try {
+        showStatus('⬇️ Downloading...', 'loading');
+        
+        const response = await fetch(currentImageUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-generated-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(url);
+        showStatus('✅ Image generated successfully!', 'success');
+      } catch (error) {
+        showStatus('❌ Download failed. Please try right-click and save image.', 'error');
+      }
     }
 
-    // Allow Enter key to submit
+    // Allow Ctrl+Enter to submit
     document.getElementById('prompt').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.ctrlKey) {
         generateImage();
